@@ -24,7 +24,6 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/ink": "^0.5.2",
     "tsx": "^4.20.6"
   }
 }

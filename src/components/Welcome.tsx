@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import StatusBar from './StatusBar';
+import StatusBar from './StatusBar.js';
 
 interface WelcomeProps {
   logo: string;
 }
 
-function Welcome({ logo }: WelcomeProps): JSX.Element {
+function Welcome({ logo }: WelcomeProps): React.ReactElement {
   const [status, setStatus] = useState('Initializing system...');
   const [progress, setProgress] = useState(0);
 

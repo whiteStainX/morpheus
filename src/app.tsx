@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Welcome from './components/Welcome';
-import { readTextFile } from './utils/fileReader';
+import Welcome from './components/Welcome.js';
+import { readTextFile } from './utils/fileReader.js';
 
 function App() {
   const [logoContent, setLogoContent] = useState('');
