@@ -14,7 +14,7 @@ function StatusBar({ message, progress }: StatusBarProps): JSX.Element {
   const progressBar = '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" alignItems="center">
       <Text color="green">{message} ({progress}%)</Text>
       <Text color="green">{progressBar}</Text>
     </Box>
