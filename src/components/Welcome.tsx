@@ -4,11 +4,12 @@ import StatusBar from './StatusBar.js';
 
 interface WelcomeProps {
   logo: string;
+  onBootComplete: () => void;
 }
 
 import { bootMessages } from '../data/bootMessages.js';
 
-function Welcome({ logo }: WelcomeProps): React.ReactElement {
+function Welcome({ logo, onBootComplete }: WelcomeProps): React.ReactElement {
   const [status, setStatus] = useState(bootMessages[0].text);
   const [progress, setProgress] = useState(bootMessages[0].progress);
 
@@ -23,11 +24,12 @@ function Welcome({ logo }: WelcomeProps): React.ReactElement {
         messageIndex++;
       } else {
         clearInterval(interval);
+        onBootComplete(); // Call when boot is complete
       }
     }, 1000); // Display each message for 1 second
 
     return () => clearInterval(interval);
-  }, []);
+  }, [onBootComplete]);
   return (
     <Box flexDirection="column" alignItems="center" paddingTop={2}>
       <Text color="cyan">{logo}</Text>

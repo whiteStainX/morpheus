@@ -1,16 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Welcome from './components/Welcome.js';
+import FileSystem from './components/FileSystem.js';
 import { readTextFile } from './utils/fileReader.js';
 
 function App() {
-  const [logoContent, setLogoContent] = useState('');
+  const [welcomeLogoContent, setWelcomeLogoContent] = useState('');
+  const [desktopLogoContent, setDesktopLogoContent] = useState('');
+  const [screen, setScreen] = useState<'welcome' | 'fileSystem'>('welcome');
 
   useEffect(() => {
-    const content = readTextFile('src/assets/logo.txt');
-    setLogoContent(content);
+    setWelcomeLogoContent(readTextFile('src/assets/logo.txt'));
+    setDesktopLogoContent(readTextFile('src/assets/logo_desktop.txt'));
   }, []);
 
-  return <Welcome logo={logoContent} />;
+  const handleBootComplete = useCallback(() => {
+    setScreen('fileSystem');
+  }, []);
+
+  if (screen === 'welcome') {
+    return <Welcome logo={welcomeLogoContent} onBootComplete={handleBootComplete} />;
+  } else {
+    return <FileSystem logo={desktopLogoContent} />;
+  }
 }
 
 export default App;
