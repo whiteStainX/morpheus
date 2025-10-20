@@ -3,20 +3,22 @@ import { Box, Text } from 'ink';
 
 interface StatusBarProps {
   message: string;
-  progress: number; // 0 to 100
+  progress: number;
 }
 
 function StatusBar({ message, progress }: StatusBarProps): JSX.Element {
-  const barLength = 20; // Length of the progress bar
-  const filledBlocks = Math.floor((progress / 100) * barLength);
+  const barLength = 30;
+  const clampedProgress = Math.max(0, Math.min(progress, 100));
+  const filledBlocks = Math.round((clampedProgress / 100) * barLength);
   const emptyBlocks = barLength - filledBlocks;
 
-  const progressBar = '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+  const progressBar = '▓'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+  const progressLabel = `${clampedProgress.toString().padStart(3, ' ')}%`;
 
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text color="green">{message} ({progress}%)</Text>
-      <Text color="green">{progressBar}</Text>
+    <Box flexDirection="column" alignItems="stretch">
+      <Text color="greenBright">{message}</Text>
+      <Text color="green">[{progressBar}] {progressLabel}</Text>
     </Box>
   );
 }

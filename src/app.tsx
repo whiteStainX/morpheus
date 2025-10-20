@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text } from 'ink'; // Import Box and Text here
+import { Box, Text } from 'ink';
 import Welcome from './components/Welcome.js';
 import FileSystem from './components/FileSystem.js';
 import { readTextFile } from './utils/fileReader.js';
@@ -19,12 +19,30 @@ function App() {
   }, []);
 
   return (
-    <Box borderStyle="single" borderColor="green" flexDirection="column" padding={1}>
-      {screen === 'welcome' ? (
-        <Welcome logo={welcomeLogoContent} onBootComplete={handleBootComplete} />
-      ) : (
-        <FileSystem logo={desktopLogoContent} />
-      )}
+    <Box
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      padding={1}
+      flexGrow={1}
+      backgroundColor="black"
+    >
+      <Box
+        flexDirection="column"
+        alignItems="center"
+        borderStyle="double"
+        borderColor="green"
+        paddingX={2}
+        paddingY={1}
+        width={80}
+      >
+        <Text color="green">MORPHEUS-86 INTERFACE // CRT MODE</Text>
+        {screen === 'welcome' ? (
+          <Welcome logo={welcomeLogoContent} onBootComplete={handleBootComplete} />
+        ) : (
+          <FileSystem logo={desktopLogoContent} />
+        )}
+      </Box>
     </Box>
   );
 }

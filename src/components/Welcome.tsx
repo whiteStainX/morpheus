@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import StatusBar from './StatusBar.js';
+import { bootMessages } from '../data/bootMessages.js';
 
 interface WelcomeProps {
   logo: string;
   onBootComplete: () => void;
 }
-
-import { bootMessages } from '../data/bootMessages.js';
 
 function Welcome({ logo, onBootComplete }: WelcomeProps): React.ReactElement {
   const [status, setStatus] = useState(bootMessages[0].text);
@@ -24,16 +23,36 @@ function Welcome({ logo, onBootComplete }: WelcomeProps): React.ReactElement {
         messageIndex++;
       } else {
         clearInterval(interval);
-        onBootComplete(); // Call when boot is complete
+        onBootComplete();
       }
-    }, 1000); // Display each message for 1 second
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [onBootComplete]);
+
   return (
-    <Box flexDirection="column" alignItems="center" paddingTop={2}>
-      <Text color="green">{logo}</Text>
-      <Box marginTop={1}>
+    <Box flexDirection="column" alignItems="center" paddingTop={1}>
+      <Text color="greenBright">{logo}</Text>
+      <Box
+        width={72}
+        borderStyle="single"
+        borderColor="green"
+        paddingX={1}
+        paddingY={0}
+        marginTop={1}
+        flexDirection="column"
+      >
+        <Text color="green">Morpheus-86 Bootloader // ROM v2.3</Text>
+        <Text color="green">Warming cathode emitters · Aligning scanlines</Text>
+      </Box>
+      <Box
+        width={72}
+        borderStyle="single"
+        borderColor="green"
+        paddingX={1}
+        paddingY={0}
+        marginTop={1}
+      >
         <StatusBar message={status} progress={progress} />
       </Box>
     </Box>

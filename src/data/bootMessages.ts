@@ -1,7 +1,8 @@
 export const bootMessages = [
-  { text: 'Initializing system...', progress: 10 },
-  { text: 'Loading core modules...', progress: 30 },
-  { text: 'Establishing secure connection...', progress: 60 },
-  { text: 'Preparing user interface...', progress: 90 },
-  { text: 'System ready.', progress: 100 },
+  { text: 'MORPHEUS-86 ROM v2.3 — Cold boot initiated', progress: 10 },
+  { text: 'Calibrating cathode emitters', progress: 28 },
+  { text: 'Loading core kernel modules', progress: 52 },
+  { text: 'Mounting operator workspace', progress: 76 },
+  { text: 'Establishing secure uplink', progress: 92 },
+  { text: 'Desktop shell hand-off complete', progress: 100 },
 ];
