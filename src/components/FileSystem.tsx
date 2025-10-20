@@ -5,63 +5,83 @@ interface FileSystemProps {
   logo: string;
 }
 
+const BlinkingCursor = () => {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setVisible((v) => !v);
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
+
+  return <Text color="green">{visible ? '█' : ' '}</Text>;
+};
+
 function FileSystem({ logo }: FileSystemProps): React.ReactElement {
   const { exit } = useApp();
   const [input, setInput] = useState('');
-  const [output, setOutput] = useState<Array<{ type: 'command' | 'response'; text: string }>>([]);
+  const [output, setOutput] = useState<Array<{ type: 'command' | 'response'; text: string }>>([
+    { type: 'response', text: 'Welcome to Morpheus OS.' },
+    { type: 'response', text: "Type 'help' for a list of commands." },
+  ]);
 
   const instructions = [
-    `Welcome to Morpheus OS.`,
-    `Type 'help' for a list of commands.`,
-    `Use 'ls' to list directory contents.`,
-    `Use 'cd <dir>' to change directory.`,
-    `Use 'cat <file>' to view file contents.`,
-    `Type '/quit' to exit the OS.`,
+    `List of commands:`,
+    `  'help' - display this list of commands`,
+    `  'ls'   - list directory contents`,
+    `  'cd <dir>' - change directory`,
+    `  'cat <file>' - view file contents`,
+    `  '/quit' - exit the OS`,
   ];
 
   useInput((inputChar, key) => {
     if (key.return) {
-      // On Enter key
       const command = input.trim();
-      setOutput((prevOutput) => [...prevOutput, { type: 'command', text: `morpheus:/$ ${command}` }]);
-      setInput('');
+      const newOutput = [...output, { type: 'command' as const, text: `morpheus:/$ ${command}` }];
 
       if (command === '/quit') {
-        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: 'Shutting down Morpheus OS...' }]);
-        setTimeout(() => exit(), 500); // Exit after a short delay
+        newOutput.push({ type: 'response', text: 'Shutting down Morpheus OS...' });
+        setOutput(newOutput);
+        setTimeout(() => exit(), 500);
       } else if (command === 'help') {
-        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: instructions.join('\n') }]);
-      } else if (command === '') {
-        // Do nothing for empty command
+        newOutput.push({ type: 'response', text: instructions.join('\n') });
+        setOutput(newOutput);
+      } else if (command !== '') {
+        newOutput.push({ type: 'response', text: `Command not found: ${command}` });
+        setOutput(newOutput);
       } else {
-        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: `Command not found: ${command}` }]);
+        setOutput(newOutput);
       }
+      setInput('');
     } else if (key.backspace || key.delete) {
-      // On Backspace/Delete key
       setInput((prevInput) => prevInput.slice(0, -1));
-    } else if (!key.tab && !key.leftArrow && !key.rightArrow && !key.upArrow && !key.downArrow) {
-      // Append character to input
+    } else if (!key.ctrl && !key.meta && inputChar) {
       setInput((prevInput) => prevInput + inputChar);
     }
   });
 
   return (
-    <Box flexDirection="column" alignItems="center" paddingTop={1}>
-      <Text color="green">{logo}</Text>
-      <Box marginTop={1} marginBottom={1} borderStyle="single" borderColor="green" paddingX={1} flexDirection="column">
-        {instructions.map((line, index) => (
-          <Box key={index}>
-            <Text color="green">{line}</Text>
-          </Box>
-        ))}
+    <Box flexDirection="column" alignItems="stretch" width="100%">
+      <Box justifyContent="center">
+        <Text color="green">{logo}</Text>
       </Box>
-      <Box width="100%" height={10} flexDirection="column" borderStyle="single" borderColor="green" paddingX={1} paddingY={0}>
+      <Box
+        flexDirection="column"
+        borderStyle="single"
+        borderColor="green"
+        paddingX={1}
+        marginTop={1}
+        height={15}
+      >
         {output.map((line, index) => (
-          <Text key={index} color={line.type === 'command' ? 'gray' : 'green'}>{line.text}</Text>
+          <Text key={index} color={line.type === 'command' ? 'gray' : 'green'}>
+            {line.text}
+          </Text>
         ))}
         <Box>
           <Text color="green">morpheus:/$ </Text>
           <Text color="green">{input}</Text>
+          <BlinkingCursor />
         </Box>
       </Box>
     </Box>
