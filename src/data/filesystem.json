@@ -1,0 +1,35 @@
+{
+  "/": {
+    "type": "directory",
+    "children": {
+      "home": {
+        "type": "directory",
+        "children": {
+          "user": {
+            "type": "directory",
+            "children": {
+              "documents": {
+                "type": "directory",
+                "children": {
+                  "readme.txt": {
+                    "type": "file",
+                    "content": "Welcome to Morpheus OS!"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "etc": {
+        "type": "directory",
+        "children": {
+          "config": {
+            "type": "file",
+            "content": "some config"
+          }
+        }
+      }
+    }
+  }
+}

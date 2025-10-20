@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
+import { readTextFile } from '../utils/fileReader.js';
+
+interface File {
+  type: 'file';
+  content: string;
+}
+
+interface Directory {
+  type: 'directory';
+  children: { [key: string]: File | Directory };
+}
+
+type FileSystemNode = File | Directory;
 
 interface FileSystemProps {
   logo: string;
@@ -20,10 +33,19 @@ const BlinkingCursor = () => {
 function FileSystem({ logo }: FileSystemProps): React.ReactElement {
   const { exit } = useApp();
   const [input, setInput] = useState('');
+  const [fileSystem, setFileSystem] = useState<Directory | null>(null);
+  const [currentPath, setCurrentPath] = useState('/');
   const [output, setOutput] = useState<Array<{ type: 'command' | 'response'; text: string }>>([
     { type: 'response', text: 'Welcome to Morpheus OS.' },
     { type: 'response', text: "Type 'help' for a list of commands." },
   ]);
+
+  useEffect(() => {
+    const fsData = readTextFile('src/data/filesystem.json');
+    if (fsData) {
+      setFileSystem(JSON.parse(fsData));
+    }
+  }, []);
 
   const instructions = [
     `List of commands:`,
@@ -33,6 +55,20 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
     `  'cat <file>' - view file contents`,
     `  '/quit' - exit the OS`,
   ];
+
+  const getNodeByPath = (path: string): FileSystemNode | null => {
+    if (!fileSystem) return null;
+    const pathParts = path.split('/').filter(p => p);
+    let currentNode: FileSystemNode = fileSystem['/'];
+    for (const part of pathParts) {
+      if (currentNode.type === 'directory' && currentNode.children[part]) {
+        currentNode = currentNode.children[part];
+      } else {
+        return null;
+      }
+    }
+    return currentNode;
+  };
 
   useInput((inputChar, key) => {
     if (key.return) {
@@ -45,6 +81,55 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
         setTimeout(() => exit(), 500);
       } else if (command === 'help') {
         newOutput.push({ type: 'response', text: instructions.join('\n') });
+        setOutput(newOutput);
+      } else if (command === 'ls') {
+        const currentDir = getNodeByPath(currentPath);
+        if (currentDir?.type === 'directory') {
+          const content = Object.keys(currentDir.children).join('  ');
+          newOutput.push({ type: 'response', text: content });
+        }
+        setOutput(newOutput);
+      } else if (command.startsWith('cd ')) {
+        const targetDir = command.split(' ')[1];
+        if (targetDir) {
+          let newPath;
+          if (targetDir === '..') {
+            if (currentPath === '/') {
+              newPath = '/';
+            } else {
+              const pathParts = currentPath.split('/').filter(p => p);
+              pathParts.pop();
+              newPath = '/' + pathParts.join('/');
+            }
+          } else if (targetDir.startsWith('/')) {
+            newPath = targetDir;
+          } else {
+            newPath = currentPath === '/' ? `/${targetDir}` : `${currentPath}/${targetDir}`;
+          }
+
+          if (newPath.length > 1 && newPath.endsWith('/')) {
+            newPath = newPath.slice(0, -1);
+          }
+
+          const targetNode = getNodeByPath(newPath);
+          if (targetNode?.type === 'directory') {
+            setCurrentPath(newPath);
+          } else {
+            newOutput.push({ type: 'response', text: `cd: ${targetDir}: No such file or directory` });
+          }
+        }
+        setOutput(newOutput);
+      } else if (command.startsWith('cat ')) {
+        const targetFile = command.split(' ')[1];
+        if (targetFile) {
+          const filePath = targetFile.startsWith('/') ? targetFile : (currentPath === '/' ? `/${targetFile}`: `${currentPath}/${targetFile}`);
+          const targetNode = getNodeByPath(filePath);
+          if (targetNode?.type === 'file') {
+            newOutput.push({ type: 'response', text: targetNode.content });
+          } else {
+            newOutput.push({ type: 'response', text: `cat: ${targetFile}: No such file or directory` });
+          }
+        }
         setOutput(newOutput);
       } else if (command !== '') {
         newOutput.push({ type: 'response', text: `Command not found: ${command}` });
@@ -79,7 +164,7 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
           </Text>
         ))}
         <Box>
-          <Text color="green">morpheus:/$ </Text>
+          <Text color="green">morpheus:{currentPath}$ </Text>
           <Text color="green">{input}</Text>
           <BlinkingCursor />
         </Box>
