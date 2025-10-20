@@ -9,6 +9,8 @@ npm install
 npm run build
 ```
 
+> **Requirements:** Node.js 18+ and a local `genact` binary available on your `$PATH`.
+
 Run the CLI locally with:
 
 ```bash
