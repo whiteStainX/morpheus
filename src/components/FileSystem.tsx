@@ -47,19 +47,21 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
 
   return (
     <Box flexDirection="column" alignItems="center" paddingTop={1}>
-      <Text color="cyan">{logo}</Text>
-      <Box marginTop={1} marginBottom={1} borderStyle="single" borderColor="white" paddingX={1}>
+      <Text color="green">{logo}</Text>
+      <Box marginTop={1} marginBottom={1} borderStyle="single" borderColor="green" paddingX={1} flexDirection="column">
         {instructions.map((line, index) => (
-          <Text key={index} color="white">{line}</Text>
+          <Box key={index}>
+            <Text color="green">{line}</Text>
+          </Box>
         ))}
       </Box>
-      <Box width="100%" flexDirection="column" borderStyle="single" borderColor="white" paddingX={1} paddingY={0}>
+      <Box width="100%" height={10} flexDirection="column" borderStyle="single" borderColor="green" paddingX={1} paddingY={0}>
         {output.map((line, index) => (
-          <Text key={index} color={line.type === 'command' ? 'gray' : 'white'}>{line.text}</Text>
+          <Text key={index} color={line.type === 'command' ? 'gray' : 'green'}>{line.text}</Text>
         ))}
         <Box>
-          <Text color="white">morpheus:/$ </Text>
-          <Text color="white">{input}</Text>
+          <Text color="green">morpheus:/$ </Text>
+          <Text color="green">{input}</Text>
         </Box>
       </Box>
     </Box>

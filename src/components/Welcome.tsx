@@ -32,7 +32,7 @@ function Welcome({ logo, onBootComplete }: WelcomeProps): React.ReactElement {
   }, [onBootComplete]);
   return (
     <Box flexDirection="column" alignItems="center" paddingTop={2}>
-      <Text color="cyan">{logo}</Text>
+      <Text color="green">{logo}</Text>
       <Box marginTop={1}>
         <StatusBar message={status} progress={progress} />
       </Box>

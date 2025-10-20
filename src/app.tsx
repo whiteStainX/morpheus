@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Text } from 'ink'; // Import Box and Text here
 import Welcome from './components/Welcome.js';
 import FileSystem from './components/FileSystem.js';
 import { readTextFile } from './utils/fileReader.js';
@@ -17,11 +18,15 @@ function App() {
     setScreen('fileSystem');
   }, []);
 
-  if (screen === 'welcome') {
-    return <Welcome logo={welcomeLogoContent} onBootComplete={handleBootComplete} />;
-  } else {
-    return <FileSystem logo={desktopLogoContent} />;
-  }
+  return (
+    <Box borderStyle="single" borderColor="green" flexDirection="column" padding={1}>
+      {screen === 'welcome' ? (
+        <Welcome logo={welcomeLogoContent} onBootComplete={handleBootComplete} />
+      ) : (
+        <FileSystem logo={desktopLogoContent} />
+      )}
+    </Box>
+  );
 }
 
 export default App;
