@@ -9,29 +9,22 @@ interface WelcomeProps {
 import { bootMessages } from '../data/bootMessages.js';
 
 function Welcome({ logo }: WelcomeProps): React.ReactElement {
-  const [status, setStatus] = useState(bootMessages[0]);
-  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState(bootMessages[0].text);
+  const [progress, setProgress] = useState(bootMessages[0].progress);
 
   useEffect(() => {
-    const messages = bootMessages;
     let messageIndex = 0;
-    let currentProgress = 0;
-    const totalSteps = messages.length * 2; // Each message and a progress increment
-    const progressPerStep = 100 / totalSteps;
 
     const interval = setInterval(() => {
-      if (messageIndex < messages.length) {
-        setStatus(messages[messageIndex]);
-        currentProgress += progressPerStep;
-        setProgress(Math.min(100, Math.floor(currentProgress)));
+      if (messageIndex < bootMessages.length) {
+        const currentMessage = bootMessages[messageIndex];
+        setStatus(currentMessage.text);
+        setProgress(currentMessage.progress);
         messageIndex++;
-      } else if (currentProgress < 100) {
-        currentProgress += progressPerStep;
-        setProgress(Math.min(100, Math.floor(currentProgress)));
       } else {
         clearInterval(interval);
       }
-    }, 500);
+    }, 1000); // Display each message for 1 second
 
     return () => clearInterval(interval);
   }, []);
