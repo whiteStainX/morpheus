@@ -1,18 +1,49 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React, { useState, useEffect } from 'react';
+import { Box, Text, useInput, useApp } from 'ink';
 
 interface FileSystemProps {
   logo: string;
 }
 
 function FileSystem({ logo }: FileSystemProps): React.ReactElement {
+  const { exit } = useApp();
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState<Array<{ type: 'command' | 'response'; text: string }>>([]);
+
   const instructions = [
     `Welcome to Morpheus OS.`,
     `Type 'help' for a list of commands.`,
     `Use 'ls' to list directory contents.`,
     `Use 'cd <dir>' to change directory.`,
     `Use 'cat <file>' to view file contents.`,
+    `Type '/quit' to exit the OS.`,
   ];
+
+  useInput((inputChar, key) => {
+    if (key.return) {
+      // On Enter key
+      const command = input.trim();
+      setOutput((prevOutput) => [...prevOutput, { type: 'command', text: `morpheus:/$ ${command}` }]);
+      setInput('');
+
+      if (command === '/quit') {
+        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: 'Shutting down Morpheus OS...' }]);
+        setTimeout(() => exit(), 500); // Exit after a short delay
+      } else if (command === 'help') {
+        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: instructions.join('\n') }]);
+      } else if (command === '') {
+        // Do nothing for empty command
+      } else {
+        setOutput((prevOutput) => [...prevOutput, { type: 'response', text: `Command not found: ${command}` }]);
+      }
+    } else if (key.backspace || key.delete) {
+      // On Backspace/Delete key
+      setInput((prevInput) => prevInput.slice(0, -1));
+    } else if (!key.tab && !key.leftArrow && !key.rightArrow && !key.upArrow && !key.downArrow) {
+      // Append character to input
+      setInput((prevInput) => prevInput + inputChar);
+    }
+  });
 
   return (
     <Box flexDirection="column" alignItems="center" paddingTop={1}>
@@ -22,9 +53,14 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
           <Text key={index} color="white">{line}</Text>
         ))}
       </Box>
-      <Box width="100%" borderStyle="single" borderColor="white" paddingX={1} paddingY={0}>
-        <Text color="white">morpheus:/$ </Text>
-        {/* CLI input will go here */}
+      <Box width="100%" flexDirection="column" borderStyle="single" borderColor="white" paddingX={1} paddingY={0}>
+        {output.map((line, index) => (
+          <Text key={index} color={line.type === 'command' ? 'gray' : 'white'}>{line.text}</Text>
+        ))}
+        <Box>
+          <Text color="white">morpheus:/$ </Text>
+          <Text color="white">{input}</Text>
+        </Box>
       </Box>
     </Box>
   );
