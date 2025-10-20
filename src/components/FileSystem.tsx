@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
+import useStdoutDimensions from 'ink-use-stdout-dimensions';
 import { readTextFile } from '../utils/fileReader.js';
 
 interface File {
@@ -32,6 +33,7 @@ const BlinkingCursor = () => {
 
 function FileSystem({ logo }: FileSystemProps): React.ReactElement {
   const { exit } = useApp();
+  const { columns } = useStdoutDimensions();
   const [input, setInput] = useState('');
   const [fileSystem, setFileSystem] = useState<Directory | null>(null);
   const [currentPath, setCurrentPath] = useState('/');
@@ -157,6 +159,7 @@ function FileSystem({ logo }: FileSystemProps): React.ReactElement {
         paddingX={1}
         marginTop={1}
         height={15}
+        width={columns}
       >
         {output.map((line, index) => (
           <Text key={index} color={line.type === 'command' ? 'gray' : 'green'}>

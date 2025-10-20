@@ -14,6 +14,10 @@
                   "readme.txt": {
                     "type": "file",
                     "content": "Welcome to Morpheus OS!"
+                  },
+                  "long.txt": {
+                    "type": "file",
+                    "content": "This is a very long line of text that should cause an overflow in the UI. This is a very long line of text that should cause an overflow in the UI. This is a very long line of text that should cause an overflow in the UI. This is a very long line of text that should cause an overflow in the UI."
                   }
                 }
               }
