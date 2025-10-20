@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
+import StatusBar from './StatusBar';
 
 interface WelcomeProps {
   logo: string;
@@ -7,6 +8,7 @@ interface WelcomeProps {
 
 function Welcome({ logo }: WelcomeProps): JSX.Element {
   const [status, setStatus] = useState('Initializing system...');
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const messages = [
@@ -15,15 +17,24 @@ function Welcome({ logo }: WelcomeProps): JSX.Element {
       'Preparing user interface...',
       'System ready.',
     ];
-    let i = 0;
+    let messageIndex = 0;
+    let currentProgress = 0;
+    const totalSteps = messages.length * 2; // Each message and a progress increment
+    const progressPerStep = 100 / totalSteps;
+
     const interval = setInterval(() => {
-      if (i < messages.length) {
-        setStatus(messages[i]);
-        i++;
+      if (messageIndex < messages.length) {
+        setStatus(messages[messageIndex]);
+        currentProgress += progressPerStep;
+        setProgress(Math.min(100, Math.floor(currentProgress)));
+        messageIndex++;
+      } else if (currentProgress < 100) {
+        currentProgress += progressPerStep;
+        setProgress(Math.min(100, Math.floor(currentProgress)));
       } else {
         clearInterval(interval);
       }
-    }, 1000);
+    }, 500); // Update every 500ms for a smoother animation
 
     return () => clearInterval(interval);
   }, []);
@@ -32,7 +43,7 @@ function Welcome({ logo }: WelcomeProps): JSX.Element {
     <Box flexDirection="column" alignItems="center" paddingTop={2}>
       <Text color="cyan">{logo}</Text>
       <Box marginTop={1}>
-        <Text color="green">Status: {status}</Text>
+        <StatusBar message={status} progress={progress} />
       </Box>
     </Box>
   );
