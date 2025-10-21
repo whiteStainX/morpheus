@@ -1,0 +1,9 @@
+[engine]
+width = 80
+height = 24
+framerate = 30
+mode = "braille"
+
+[[scenes]]
+name = "waves"
+duration_ms = 5000
