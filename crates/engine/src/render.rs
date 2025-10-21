@@ -1,5 +1,5 @@
 use crossterm::{cursor, execute, terminal};
-use std::io::{stdout, Write};
+use std::io::stdout;
 
 pub fn clear_screen() {
     let mut out = stdout();
