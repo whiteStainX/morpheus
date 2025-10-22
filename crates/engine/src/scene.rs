@@ -9,5 +9,5 @@ pub trait Scene {
     fn on_start(&mut self, ctx: &mut Context);
     fn on_update(&mut self, ctx: &mut Context, dt: f32);
     fn on_draw(&mut self, ctx: &mut Context);
-    // fn on_exit(&mut self, ctx: &mut Context); // Optional, for cleanup
+    fn on_exit(&mut self, ctx: &mut Context);
 }
