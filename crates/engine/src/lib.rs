@@ -1,6 +1,5 @@
 pub mod render;
 pub mod time;
+pub mod scene;
 
-pub fn hello() {
-    println!("Shape Engine Core initialized.");
-}
+pub use scene::{Context, Scene};
