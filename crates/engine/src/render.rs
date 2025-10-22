@@ -1,6 +1,7 @@
 use anyhow::Result;
 use crossterm::{cursor, execute, style::{Color, Print, SetBackgroundColor, SetForegroundColor}, terminal};
 use std::io::{stdout, Write};
+use crate::draw::Canvas;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -58,21 +59,8 @@ impl TerminalRenderer {
         }
     }
 
-    pub fn draw_text(&mut self, x: u16, y: u16, text: &str) {
-        if y >= self.height {
-            return;
-        }
-        for (i, c) in text.chars().enumerate() {
-            let x = x + i as u16;
-            if x >= self.width {
-                break;
-            }
-            let index = (y * self.width + x) as usize;
-            self.back_buffer[index] = Cell {
-                symbol: c,
-                ..Cell::default()
-            };
-        }
+    pub fn canvas(&mut self) -> Canvas<'_> {
+        Canvas::new(self.width, self.height, &mut self.back_buffer)
     }
 
     pub fn flush(&mut self) -> Result<()> {

@@ -1,7 +1,7 @@
-use crate::render::TerminalRenderer;
+use crate::draw::Canvas;
 
 pub struct Context<'a> {
-    pub renderer: &'a mut TerminalRenderer,
+    pub canvas: Canvas<'a>,
     // pub input: &'a InputState, // Will be added later
 }
 

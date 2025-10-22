@@ -46,7 +46,7 @@ impl MyTestScene {
 
 impl Scene for MyTestScene {
     fn on_start(&mut self, ctx: &mut Context) {
-        ctx.renderer.draw_text(0, 5, "MyTestScene started!");
+        ctx.canvas.draw_text(0, 5, "MyTestScene started!");
     }
 
     fn on_update(&mut self, _ctx: &mut Context, _dt: f32) {
@@ -54,7 +54,7 @@ impl Scene for MyTestScene {
     }
 
     fn on_draw(&mut self, ctx: &mut Context) {
-        ctx.renderer.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
+        ctx.canvas.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
     }
 }
 
@@ -71,7 +71,7 @@ fn main() -> Result<()> {
             let mut scene = MyTestScene::new();
 
             // Call on_start once
-            let mut context = Context { renderer: &mut renderer };
+            let mut context = Context { canvas: renderer.canvas() };
             scene.on_start(&mut context);
 
             loop {
@@ -87,11 +87,11 @@ fn main() -> Result<()> {
                 }
 
                 renderer.clear_screen();
-                renderer.draw_text(0, 0, &format!("Running scene from config: {}", args.config));
-                renderer.draw_text(0, 1, &format!("Framerate: {}", args.framerate));
+                let mut context = Context { canvas: renderer.canvas() };
+                context.canvas.draw_text(0, 0, &format!("Running scene from config: {}", args.config));
+                context.canvas.draw_text(0, 1, &format!("Framerate: {}", args.framerate));
 
                 // Update and draw scene
-                let mut context = Context { renderer: &mut renderer };
                 scene.on_update(&mut context, dt);
                 scene.on_draw(&mut context);
 
