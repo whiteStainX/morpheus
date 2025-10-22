@@ -3,8 +3,8 @@ use crossterm::style::Color;
 
 #[allow(dead_code)] // Fields will be used in future steps
 pub struct Canvas<'a> {
-    width: u16,
-    height: u16,
+    pub width: u16,
+pub height: u16,
     buffer: &'a mut Vec<Cell>,
     current_fg: Color,
     current_bg: Color,
