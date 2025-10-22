@@ -1,14 +1,22 @@
 use crate::render::Cell;
 use crossterm::style::Color;
 
+#[derive(Debug)]
+pub enum PixelMode {
+    Ascii,
+    HalfBlock,
+    Braille,
+}
+
 #[allow(dead_code)] // Fields will be used in future steps
 pub struct Canvas<'a> {
     pub width: u16,
-pub height: u16,
+    pub height: u16,
     buffer: &'a mut Vec<Cell>,
     current_fg: Color,
     current_bg: Color,
     current_symbol: char,
+    pub current_pixel_mode: PixelMode,
 }
 
 impl<'a> Canvas<'a> {
@@ -20,6 +28,7 @@ impl<'a> Canvas<'a> {
             current_fg: Color::Reset,
             current_bg: Color::Reset,
             current_symbol: ' ',
+            current_pixel_mode: PixelMode::Ascii,
         }
     }
 

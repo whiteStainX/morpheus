@@ -81,6 +81,7 @@ impl Scene for MyTestScene {
     fn on_draw(&mut self, ctx: &mut Context) {
         ctx.canvas.draw_text(0, 0, &format!("Running scene from config: {}", "examples/minimal.toml"));
         ctx.canvas.draw_text(0, 1, &format!("Framerate: {}", (1.0 / self.dt) as u32));
+        ctx.canvas.draw_text(0, 2, &format!("Pixel Mode: {:?}", &ctx.canvas.current_pixel_mode));
         ctx.canvas.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
         ctx.canvas.draw_text(0, 8, &format!("Delta Time (dt): {:.4}", self.dt));
         ctx.canvas.draw_text(0, 9, &format!("FPS: {:.2}", 1.0 / self.dt));
