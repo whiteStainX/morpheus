@@ -4,7 +4,6 @@ use shape_engine_core::{render::TerminalRenderer, time::Clock, Context, Scene};
 use crossterm::event::{self, Event, KeyCode};
 use std::time::Duration;
 use crossterm::style::Color;
-use std::thread;
 
 #[derive(Parser, Debug)]
 #[command(name = "shape")]
