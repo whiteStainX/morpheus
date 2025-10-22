@@ -22,3 +22,11 @@
 *   **Frame Timing:** Refined `Clock` struct and `tick()` method in `crates/engine/src/time.rs` to accurately provide delta time (`dt`) and enforce target FPS.
 *   **Main Application Loop:** Set up the continuous main loop in `crates/cli/src/main.rs`, integrating `Clock`, `TerminalRenderer`, and a placeholder `Scene` (`MyTestScene`). Implemented basic keyboard input handling for exiting the application.
 *   **Scene System (Partial):** Defined `Context` struct and `Scene` trait in `crates/engine/src/scene.rs` and exported them from `crates/engine/src/lib.rs`.
+
+## Progress Update (2025-10-21) - Canvas & Drawing Primitives
+
+*   **Canvas Abstraction:** Implemented `Canvas` struct in `crates/engine/src/draw.rs` to manage drawing operations, including current pixel mode, foreground/background colors, and symbol. `TerminalRenderer` now provides a `canvas()` method, and `Context` holds a `Canvas` instance.
+*   **Color Support:** Implemented `set_foreground_color` and `set_background_color` methods in `Canvas` to control drawing colors.
+*   **Drawing Primitives:** Implemented `draw_point`, `draw_line` (Bresenham's), `draw_rect` (outline/filled), `draw_circle` (outline/filled), and `set_symbol` in `Canvas`.
+    *   *Note:* These drawing functions are currently basic and will need further refinement, especially when integrating advanced pixel modes.
+*   **Pixel Mode Implementation (Partial):** Defined `PixelMode` enum and integrated it into `Canvas`. ASCII mode is functional. The rendering logic for Unicode Half-Block and Braille modes is pending.
