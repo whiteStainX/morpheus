@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crossterm::{cursor, execute, style::Color, terminal};
+use crossterm::{cursor, execute, style::{Color, Print, SetBackgroundColor, SetForegroundColor}, terminal};
 use std::io::{stdout, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -19,6 +19,7 @@ impl Default for Cell {
     }
 }
 
+#[allow(dead_code)] // Fields will be used in future steps
 pub struct TerminalRenderer {
     width: u16,
     height: u16,
@@ -57,8 +58,39 @@ impl TerminalRenderer {
         }
     }
 
+    pub fn draw_text(&mut self, x: u16, y: u16, text: &str) {
+        if y >= self.height {
+            return;
+        }
+        for (i, c) in text.chars().enumerate() {
+            let x = x + i as u16;
+            if x >= self.width {
+                break;
+            }
+            let index = (y * self.width + x) as usize;
+            self.back_buffer[index] = Cell {
+                symbol: c,
+                ..Cell::default()
+            };
+        }
+    }
+
     pub fn flush(&mut self) -> Result<()> {
-        // Placeholder for diff-based flushing logic
+        for (i, (front_cell, back_cell)) in self.front_buffer.iter().zip(self.back_buffer.iter()).enumerate() {
+            if front_cell != back_cell {
+                let x = (i % self.width as usize) as u16;
+                let y = (i / self.width as usize) as u16;
+                execute!(
+                    self.stdout,
+                    cursor::MoveTo(x, y),
+                    SetForegroundColor(back_cell.fg),
+                    SetBackgroundColor(back_cell.bg),
+                    Print(back_cell.symbol)
+                )?;
+            }
+        }
+        self.stdout.flush()?;
+        self.front_buffer.copy_from_slice(&self.back_buffer);
         Ok(())
     }
 }
