@@ -1,8 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use shape_engine_core::{render::TerminalRenderer, time::Clock};
-use std::thread;
-use std::time::Duration;
 
 #[derive(Parser, Debug)]
 #[command(name = "shape")]
@@ -43,14 +41,14 @@ fn main() -> Result<()> {
             let mut renderer = TerminalRenderer::new(120, 36)?;
             renderer.init()?;
 
-            let clock = Clock::new(1.0 / args.framerate as f32);
+            let mut clock = Clock::new(args.framerate as f32);
             for i in 0..10 { // Reduced loop for initial test
+                let _dt = clock.tick(); // dt is now returned by tick() and handles sleeping
                 renderer.clear_screen();
                 renderer.draw_text(0, 0, &format!("Running scene from config: {}", args.config));
                 renderer.draw_text(0, 1, &format!("Framerate: {}", args.framerate));
                 renderer.draw_text(0, 3, &format!("Frame {} - ASCII/Unicode demo incoming...", i));
                 renderer.flush()?;
-                thread::sleep(Duration::from_secs_f32(clock.dt));
             }
         }
         Commands::ListScenes(_) => {
