@@ -147,6 +147,14 @@ impl Scene for MyTestScene {
         // Reset symbol to default after drawing primitives
         ctx.canvas.set_symbol(' ');
     }
+
+    fn on_exit(&mut self, ctx: &mut Context) {
+        ctx.canvas.draw_text(0, 15, "MyTestScene exiting. Goodbye!");
+        // Ensure exit message is displayed before terminal cleanup
+        ctx.canvas.set_foreground_color(Color::Reset);
+        ctx.canvas.set_background_color(Color::Reset);
+        ctx.canvas.set_symbol(' ');
+    }
 }
 
 fn main() -> Result<()> {
@@ -186,6 +194,11 @@ fn main() -> Result<()> {
 
                 renderer.flush()?;
             }
+            // Call on_exit when loop breaks
+            let mut context = Context { canvas: renderer.canvas() };
+            scene.on_exit(&mut context);
+            renderer.flush()?; // Added: Flush after on_exit to display message
+            std::thread::sleep(Duration::from_secs(1)); // Added: Delay to see exit message
         }
         Commands::ListScenes(_) => {
             println!("Listing available scenes (not yet implemented)");
