@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use shape_engine_core::{render::TerminalRenderer, time::Clock, Context, Scene};
 use crossterm::event::{self, Event, KeyCode};
 use std::time::Duration;
+use crossterm::style::Color;
 
 #[derive(Parser, Debug)]
 #[command(name = "shape")]
@@ -36,25 +37,115 @@ struct ListScenesArgs {
 
 struct MyTestScene {
     frame_count: u32,
+    dt: f32,
+    x_pos: f32,
+    y_pos: f32,
+    x_dir: f32,
+    y_dir: f32,
+    time_elapsed: f32,
 }
 
 impl MyTestScene {
     fn new() -> Self {
-        Self { frame_count: 0 }
+        Self {
+            frame_count: 0,
+            dt: 0.0,
+            x_pos: 0.0,
+            y_pos: 0.0,
+            x_dir: 1.0,
+            y_dir: 1.0,
+            time_elapsed: 0.0,
+        }
     }
 }
 
 impl Scene for MyTestScene {
     fn on_start(&mut self, ctx: &mut Context) {
-        ctx.renderer.draw_text(0, 5, "MyTestScene started!");
+        ctx.canvas.draw_text(0, 5, "MyTestScene started!");
     }
 
-    fn on_update(&mut self, _ctx: &mut Context, _dt: f32) {
+    fn on_update(&mut self, ctx: &mut Context, dt: f32) {
         self.frame_count += 1;
+        self.dt = dt;
+        self.time_elapsed += dt;
+
+        // Simple movement logic for '@' character
+        self.x_pos += self.x_dir * 10.0 * dt; // Move 10 units per second
+        self.y_pos += self.y_dir * 5.0 * dt;  // Move 5 units per second
+
+        // Bounce off edges
+        if self.x_pos >= (ctx.canvas.width - 1) as f32 || self.x_pos < 0.0 {
+            self.x_dir *= -1.0;
+        }
+        if self.y_pos >= (ctx.canvas.height - 1) as f32 || self.y_pos < 0.0 {
+            self.y_dir *= -1.0;
+        }
     }
 
     fn on_draw(&mut self, ctx: &mut Context) {
-        ctx.renderer.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
+        // Display info
+        ctx.canvas.draw_text(0, 0, &format!("Running scene from config: {}", "examples/minimal.toml"));
+        ctx.canvas.draw_text(0, 1, &format!("Framerate: {}", (1.0 / self.dt) as u32));
+        ctx.canvas.draw_text(0, 2, &format!("Pixel Mode: {:?}, Time: {:.2}", &ctx.canvas.current_pixel_mode, self.time_elapsed));
+        ctx.canvas.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
+        ctx.canvas.draw_text(0, 8, &format!("Delta Time (dt): {:.4}", self.dt));
+        ctx.canvas.draw_text(0, 9, &format!("FPS: {:.2}", 1.0 / self.dt));
+
+        // Draw moving character in red
+        ctx.canvas.set_foreground_color(Color::Red);
+        ctx.canvas.set_symbol('@');
+        ctx.canvas.draw_text(self.x_pos as u16, self.y_pos as u16, "@");
+        ctx.canvas.set_foreground_color(Color::Reset);
+
+        // Draw some colored text
+        ctx.canvas.set_background_color(Color::Blue);
+        ctx.canvas.draw_text(0, 12, "This text has a blue background!");
+        ctx.canvas.set_background_color(Color::Reset);
+
+        // --- Demonstrate new primitives ---
+
+        // Static Rectangle
+        ctx.canvas.set_foreground_color(Color::Green);
+        ctx.canvas.set_symbol('#');
+        ctx.canvas.draw_rect(50, 5, 10, 5, false); // Outline rect
+        ctx.canvas.set_foreground_color(Color::Reset);
+
+        // Filled Rectangle
+        ctx.canvas.set_foreground_color(Color::DarkYellow);
+        ctx.canvas.set_symbol('X');
+        ctx.canvas.draw_rect(65, 5, 8, 4, true); // Filled rect
+        ctx.canvas.set_foreground_color(Color::Reset);
+
+        // Static Line
+        ctx.canvas.set_foreground_color(Color::Cyan);
+        ctx.canvas.set_symbol('-');
+        ctx.canvas.draw_line(50, 15, 70, 10);
+        ctx.canvas.set_foreground_color(Color::Reset);
+
+        // Animated Circle
+        let circle_radius = (5.0 * (self.time_elapsed.sin() + 1.0) + 2.0) as i32; // Radius oscillates
+        let circle_x = (ctx.canvas.width / 2) as i32 + (10.0 * (self.time_elapsed * 0.5).cos()) as i32;
+        let circle_y = (ctx.canvas.height / 2) as i32 + (5.0 * (self.time_elapsed * 0.8).sin()) as i32;
+
+        ctx.canvas.set_foreground_color(Color::Magenta);
+        ctx.canvas.set_symbol('*');
+        ctx.canvas.draw_circle(circle_x, circle_y, circle_radius, false); // Outline circle
+        ctx.canvas.set_foreground_color(Color::Reset);
+
+        // Animated Filled Circle
+        let filled_circle_radius = (3.0 * (self.time_elapsed.cos() + 1.0) + 1.0) as i32;
+        let filled_circle_x = (ctx.canvas.width / 4) as i32 + (5.0 * (self.time_elapsed * 0.7).sin()) as i32;
+        let filled_circle_y = (ctx.canvas.height / 4) as i32 + (3.0 * (self.time_elapsed * 0.9).cos()) as i32;
+
+        ctx.canvas.set_foreground_color(Color::White);
+        ctx.canvas.set_background_color(Color::DarkGrey);
+        ctx.canvas.set_symbol('O');
+        ctx.canvas.draw_circle(filled_circle_x, filled_circle_y, filled_circle_radius, true); // Filled circle
+        ctx.canvas.set_foreground_color(Color::Reset);
+        ctx.canvas.set_background_color(Color::Reset);
+
+        // Reset symbol to default after drawing primitives
+        ctx.canvas.set_symbol(' ');
     }
 }
 
@@ -71,7 +162,7 @@ fn main() -> Result<()> {
             let mut scene = MyTestScene::new();
 
             // Call on_start once
-            let mut context = Context { renderer: &mut renderer };
+            let mut context = Context { canvas: renderer.canvas() };
             scene.on_start(&mut context);
 
             loop {
@@ -87,11 +178,9 @@ fn main() -> Result<()> {
                 }
 
                 renderer.clear_screen();
-                renderer.draw_text(0, 0, &format!("Running scene from config: {}", args.config));
-                renderer.draw_text(0, 1, &format!("Framerate: {}", args.framerate));
+                let mut context = Context { canvas: renderer.canvas() };
 
                 // Update and draw scene
-                let mut context = Context { renderer: &mut renderer };
                 scene.on_update(&mut context, dt);
                 scene.on_draw(&mut context);
 
