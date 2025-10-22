@@ -51,4 +51,12 @@ impl<'a> Canvas<'a> {
     }
 
     // Future drawing primitives will go here
+
+    pub fn set_foreground_color(&mut self, color: Color) {
+        self.current_fg = color;
+    }
+
+    pub fn set_background_color(&mut self, color: Color) {
+        self.current_bg = color;
+    }
 }

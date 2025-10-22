@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use shape_engine_core::{render::TerminalRenderer, time::Clock, Context, Scene};
 use crossterm::event::{self, Event, KeyCode};
 use std::time::Duration;
+use crossterm::style::Color;
 
 #[derive(Parser, Debug)]
 #[command(name = "shape")]
@@ -86,8 +87,15 @@ impl Scene for MyTestScene {
         ctx.canvas.draw_text(0, 8, &format!("Delta Time (dt): {:.4}", self.dt));
         ctx.canvas.draw_text(0, 9, &format!("FPS: {:.2}", 1.0 / self.dt));
 
-        // Draw moving character
+        // Draw moving character in red
+        ctx.canvas.set_foreground_color(Color::Red);
         ctx.canvas.draw_text(self.x_pos as u16, self.y_pos as u16, "@");
+        ctx.canvas.set_foreground_color(Color::Reset); // Reset color
+
+        // Draw some colored text
+        ctx.canvas.set_background_color(Color::Blue);
+        ctx.canvas.draw_text(0, 12, "This text has a blue background!");
+        ctx.canvas.set_background_color(Color::Reset); // Reset color
     }
 }
 
