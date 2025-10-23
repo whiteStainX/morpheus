@@ -17,6 +17,16 @@ impl Default for PixelMode {
     }
 }
 
+impl PixelMode {
+    pub fn next(self) -> Self {
+        match self {
+            PixelMode::Ascii => PixelMode::HalfBlock,
+            PixelMode::HalfBlock => PixelMode::Braille,
+            PixelMode::Braille => PixelMode::Ascii,
+        }
+    }
+}
+
 #[allow(dead_code)] // Fields will be used in future steps
 pub struct Canvas<'a> {
     pub width: u16,

@@ -38,3 +38,9 @@
 *   **Scene Manager:** Implemented a `SceneManager` in `crates/engine/src/scene.rs` capable of adding, activating, and managing the lifecycle of multiple scenes.
 *   **Config Loading:** Implemented `load_config` function and associated `serde` structs in `crates/engine/src/config.rs` to load engine and scene definitions from a TOML file.
 *   **CLI Integration:** The `run` command in `crates/cli/src/main.rs` now uses the `SceneManager` to load and run scenes defined in the specified configuration file.
+
+## Progress Update (2025-10-21) - Input Handling & Overlay
+
+*   **Input System Enhancements:** Added asynchronous input polling in `crates/engine/src/input.rs`, enabling the engine to track pressed keys and expose discrete key events per frame.
+*   **Runtime Controls:** Integrated pause (`P`), next scene (`N`), mode toggle (`M`), and quit (`Q`/`Esc`) shortcuts in the CLI loop, including scene cycling logic and pixel mode rotation.
+*   **Overlay Rendering:** Extended `TerminalRenderer` with an overlay buffer and helper methods so overlays can be rendered without disturbing the main scene output. The CLI now renders an on-screen HUD with scene details, FPS, and available controls.
