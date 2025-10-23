@@ -1,9 +1,12 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use shape_engine_core::{render::TerminalRenderer, time::Clock, Context, Scene};
-use crossterm::event::{self, Event, KeyCode};
-use std::time::Duration;
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::style::Color;
+use shape_engine_core::{
+    load_config, render::TerminalRenderer, time::Clock, Context, EngineSettings, InputState, Scene,
+    SceneManager,
+};
+use std::time::Duration;
 
 #[derive(Parser, Debug)]
 #[command(name = "shape")]
@@ -26,17 +29,21 @@ struct RunArgs {
     /// Path to the configuration file
     #[arg(short, long)]
     config: String,
+    /// Target framerate (frames per second). Overrides the value in the config file when provided.
     #[arg(short, long, default_value_t = 60)]
     framerate: u32,
 }
 
 #[derive(Parser, Debug)]
 struct ListScenesArgs {
-    // No specific arguments for now, but can be extended later
+    /// Path to the configuration file to inspect
+    #[arg(short, long)]
+    config: String,
 }
 
 struct MyTestScene {
-    frame_count: u32,
+    config_path: String,
+    frame_count: u64,
     dt: f32,
     x_pos: f32,
     y_pos: f32,
@@ -46,8 +53,9 @@ struct MyTestScene {
 }
 
 impl MyTestScene {
-    fn new() -> Self {
+    fn new(config_path: impl Into<String>) -> Self {
         Self {
+            config_path: config_path.into(),
             frame_count: 0,
             dt: 0.0,
             x_pos: 0.0,
@@ -60,20 +68,18 @@ impl MyTestScene {
 }
 
 impl Scene for MyTestScene {
-    fn on_start(&mut self, ctx: &mut Context) {
+    fn on_start(&mut self, ctx: &mut Context<'_>) {
         ctx.canvas.draw_text(0, 5, "MyTestScene started!");
     }
 
-    fn on_update(&mut self, ctx: &mut Context, dt: f32) {
-        self.frame_count += 1;
-        self.dt = dt;
-        self.time_elapsed += dt;
+    fn on_update(&mut self, ctx: &mut Context<'_>) {
+        self.frame_count = ctx.frame;
+        self.dt = ctx.delta_time;
+        self.time_elapsed = ctx.total_time;
 
-        // Simple movement logic for '@' character
-        self.x_pos += self.x_dir * 10.0 * dt; // Move 10 units per second
-        self.y_pos += self.y_dir * 5.0 * dt;  // Move 5 units per second
+        self.x_pos += self.x_dir * 10.0 * ctx.delta_time; // Move 10 units per second
+        self.y_pos += self.y_dir * 5.0 * ctx.delta_time; // Move 5 units per second
 
-        // Bounce off edges
         if self.x_pos >= (ctx.canvas.width - 1) as f32 || self.x_pos < 0.0 {
             self.x_dir *= -1.0;
         }
@@ -82,129 +88,234 @@ impl Scene for MyTestScene {
         }
     }
 
-    fn on_draw(&mut self, ctx: &mut Context) {
-        // Display info
-        ctx.canvas.draw_text(0, 0, &format!("Running scene from config: {}", "examples/minimal.toml"));
-        ctx.canvas.draw_text(0, 1, &format!("Framerate: {}", (1.0 / self.dt) as u32));
-        ctx.canvas.draw_text(0, 2, &format!("Pixel Mode: {:?}, Time: {:.2}", &ctx.canvas.current_pixel_mode, self.time_elapsed));
-        ctx.canvas.draw_text(0, 7, &format!("Scene Frame: {}", self.frame_count));
-        ctx.canvas.draw_text(0, 8, &format!("Delta Time (dt): {:.4}", self.dt));
-        ctx.canvas.draw_text(0, 9, &format!("FPS: {:.2}", 1.0 / self.dt));
+    fn on_draw(&mut self, ctx: &mut Context<'_>) {
+        ctx.canvas
+            .draw_text(0, 0, &format!("Active config: {}", self.config_path));
+        ctx.canvas.draw_text(
+            0,
+            1,
+            &format!(
+                "Engine: {}x{} @ {} FPS",
+                ctx.engine.width, ctx.engine.height, ctx.engine.framerate
+            ),
+        );
 
-        // Draw moving character in red
+        let fps = if self.dt > 0.0 { 1.0 / self.dt } else { 0.0 };
+        ctx.canvas
+            .draw_text(0, 2, &format!("Pixel Mode: {:?}", ctx.engine.mode));
+        ctx.canvas.draw_text(
+            0,
+            3,
+            &format!(
+                "Frame: {}, Time: {:.2}s",
+                self.frame_count, self.time_elapsed
+            ),
+        );
+        ctx.canvas.draw_text(
+            0,
+            4,
+            &format!("Delta Time: {:.4}s, FPS: {:.1}", self.dt, fps),
+        );
+
         ctx.canvas.set_foreground_color(Color::Red);
         ctx.canvas.set_symbol('@');
-        ctx.canvas.draw_text(self.x_pos as u16, self.y_pos as u16, "@");
+        ctx.canvas
+            .draw_text(self.x_pos as u16, self.y_pos as u16, "@");
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        // Draw some colored text
         ctx.canvas.set_background_color(Color::Blue);
-        ctx.canvas.draw_text(0, 12, "This text has a blue background!");
+        ctx.canvas
+            .draw_text(0, 7, "This text has a blue background!");
         ctx.canvas.set_background_color(Color::Reset);
 
-        // --- Demonstrate new primitives ---
-
-        // Static Rectangle
         ctx.canvas.set_foreground_color(Color::Green);
         ctx.canvas.set_symbol('#');
-        ctx.canvas.draw_rect(50, 5, 10, 5, false); // Outline rect
+        ctx.canvas.draw_rect(50, 5, 10, 5, false);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        // Filled Rectangle
         ctx.canvas.set_foreground_color(Color::DarkYellow);
         ctx.canvas.set_symbol('X');
-        ctx.canvas.draw_rect(65, 5, 8, 4, true); // Filled rect
+        ctx.canvas.draw_rect(65, 5, 8, 4, true);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        // Static Line
         ctx.canvas.set_foreground_color(Color::Cyan);
         ctx.canvas.set_symbol('-');
         ctx.canvas.draw_line(50, 15, 70, 10);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        // Animated Circle
-        let circle_radius = (5.0 * (self.time_elapsed.sin() + 1.0) + 2.0) as i32; // Radius oscillates
-        let circle_x = (ctx.canvas.width / 2) as i32 + (10.0 * (self.time_elapsed * 0.5).cos()) as i32;
-        let circle_y = (ctx.canvas.height / 2) as i32 + (5.0 * (self.time_elapsed * 0.8).sin()) as i32;
+        let circle_radius = (5.0 * (self.time_elapsed.sin() + 1.0) + 2.0) as i32;
+        let circle_x =
+            (ctx.canvas.width / 2) as i32 + (10.0 * (self.time_elapsed * 0.5).cos()) as i32;
+        let circle_y =
+            (ctx.canvas.height / 2) as i32 + (5.0 * (self.time_elapsed * 0.8).sin()) as i32;
 
         ctx.canvas.set_foreground_color(Color::Magenta);
         ctx.canvas.set_symbol('*');
-        ctx.canvas.draw_circle(circle_x, circle_y, circle_radius, false); // Outline circle
+        ctx.canvas
+            .draw_circle(circle_x, circle_y, circle_radius, false);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        // Animated Filled Circle
         let filled_circle_radius = (3.0 * (self.time_elapsed.cos() + 1.0) + 1.0) as i32;
-        let filled_circle_x = (ctx.canvas.width / 4) as i32 + (5.0 * (self.time_elapsed * 0.7).sin()) as i32;
-        let filled_circle_y = (ctx.canvas.height / 4) as i32 + (3.0 * (self.time_elapsed * 0.9).cos()) as i32;
+        let filled_circle_x =
+            (ctx.canvas.width / 4) as i32 + (5.0 * (self.time_elapsed * 0.7).sin()) as i32;
+        let filled_circle_y =
+            (ctx.canvas.height / 4) as i32 + (3.0 * (self.time_elapsed * 0.9).cos()) as i32;
 
         ctx.canvas.set_foreground_color(Color::White);
         ctx.canvas.set_background_color(Color::DarkGrey);
         ctx.canvas.set_symbol('O');
-        ctx.canvas.draw_circle(filled_circle_x, filled_circle_y, filled_circle_radius, true); // Filled circle
+        ctx.canvas
+            .draw_circle(filled_circle_x, filled_circle_y, filled_circle_radius, true);
         ctx.canvas.set_foreground_color(Color::Reset);
         ctx.canvas.set_background_color(Color::Reset);
 
-        // Reset symbol to default after drawing primitives
         ctx.canvas.set_symbol(' ');
     }
 
-    fn on_exit(&mut self, ctx: &mut Context) {
+    fn on_exit(&mut self, ctx: &mut Context<'_>) {
         ctx.canvas.draw_text(0, 15, "MyTestScene exiting. Goodbye!");
-        // Ensure exit message is displayed before terminal cleanup
         ctx.canvas.set_foreground_color(Color::Reset);
         ctx.canvas.set_background_color(Color::Reset);
         ctx.canvas.set_symbol(' ');
     }
 }
 
+fn instantiate_scene(name: &str, config_path: &str) -> Option<Box<dyn Scene>> {
+    match name {
+        "waves" | "demo" | "test" => Some(Box::new(MyTestScene::new(config_path.to_string()))),
+        _ => None,
+    }
+}
+
+fn run_scene(args: &RunArgs) -> Result<()> {
+    let config = load_config(&args.config)?;
+    if config.scenes.is_empty() {
+        return Err(anyhow!(
+            "Config '{}' does not define any scenes to run",
+            args.config
+        ));
+    }
+
+    let mut renderer = TerminalRenderer::new(config.engine.width, config.engine.height)?;
+    renderer.init()?;
+
+    let mut engine_settings: EngineSettings = config.engine.clone();
+    if args.framerate > 0 {
+        engine_settings.framerate = args.framerate;
+    }
+
+    let mut clock = Clock::new(engine_settings.framerate as f32);
+
+    let mut scene_manager = SceneManager::new();
+    let mut input_state = InputState::new();
+
+    for scene_def in &config.scenes {
+        if scene_manager.has_scene(&scene_def.name) {
+            continue;
+        }
+        if let Some(scene) = instantiate_scene(&scene_def.name, &args.config) {
+            scene_manager.add_boxed_scene(scene_def.name.clone(), scene);
+        } else {
+            eprintln!("Warning: scene '{}' is not available", scene_def.name);
+        }
+    }
+
+    let initial_scene = config.scenes.first().unwrap();
+    if !scene_manager.has_scene(&initial_scene.name) {
+        return Err(anyhow!(
+            "Scene '{}' is not registered in the engine",
+            initial_scene.name
+        ));
+    }
+
+    renderer.clear_screen();
+    {
+        let mut context = Context::new(renderer.canvas(), engine_settings.clone());
+        context.set_input(Some(&input_state));
+        context.set_timing(0.0, 0.0, 0);
+        context.canvas.current_pixel_mode = engine_settings.mode;
+        scene_manager.activate(&initial_scene.name, &mut context)?;
+    }
+    renderer.flush()?;
+
+    let mut elapsed_time = 0.0f32;
+    let mut frame = 0u64;
+    let mut exit_requested = false;
+
+    while !exit_requested {
+        let dt = clock.tick();
+        elapsed_time += dt;
+        frame = frame.wrapping_add(1);
+
+        while event::poll(Duration::from_millis(0))? {
+            match event::read()? {
+                Event::Key(key_event) => match key_event.kind {
+                    KeyEventKind::Press | KeyEventKind::Repeat => {
+                        input_state.set_key_pressed(key_event.code, true);
+                        if key_event.code == KeyCode::Char('q') {
+                            exit_requested = true;
+                        }
+                    }
+                    KeyEventKind::Release => {
+                        input_state.set_key_pressed(key_event.code, false);
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        if exit_requested {
+            break;
+        }
+
+        renderer.clear_screen();
+        {
+            let mut context = Context::new(renderer.canvas(), engine_settings.clone());
+            context.set_input(Some(&input_state));
+            context.set_timing(dt, elapsed_time, frame);
+            context.canvas.current_pixel_mode = engine_settings.mode;
+            scene_manager.update(&mut context)?;
+            scene_manager.draw(&mut context);
+        }
+        renderer.flush()?;
+    }
+
+    renderer.clear_screen();
+    {
+        let mut context = Context::new(renderer.canvas(), engine_settings.clone());
+        context.set_input(Some(&input_state));
+        context.set_timing(0.0, elapsed_time, frame);
+        context.canvas.current_pixel_mode = engine_settings.mode;
+        scene_manager.shutdown(&mut context);
+    }
+    renderer.flush()?;
+    std::thread::sleep(Duration::from_millis(500));
+
+    Ok(())
+}
+
+fn list_scenes(args: &ListScenesArgs) -> Result<()> {
+    let config = load_config(&args.config)?;
+    if config.scenes.is_empty() {
+        println!("No scenes defined in {}", args.config);
+    } else {
+        println!("Scenes defined in {}:", args.config);
+        for scene in config.scenes {
+            if let Some(duration) = scene.duration_seconds() {
+                println!("- {} (duration: {:.2}s)", scene.name, duration);
+            } else {
+                println!("- {}", scene.name);
+            }
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Run(args) => {
-            // 1. Initialize the renderer
-            let mut renderer = TerminalRenderer::new(120, 36)?;
-            renderer.init()?;
-
-            let mut clock = Clock::new(args.framerate as f32);
-            let mut scene = MyTestScene::new();
-
-            // Call on_start once
-            let mut context = Context { canvas: renderer.canvas() };
-            scene.on_start(&mut context);
-
-            loop {
-                let dt = clock.tick();
-
-                // Input handling for exit
-                if event::poll(Duration::from_millis(0))? {
-                    if let Event::Key(key_event) = event::read()? {
-                        if key_event.code == KeyCode::Char('q') {
-                            break; // Exit loop on 'q'
-                        }
-                    }
-                }
-
-                renderer.clear_screen();
-                let mut context = Context { canvas: renderer.canvas() };
-
-                // Update and draw scene
-                scene.on_update(&mut context, dt);
-                scene.on_draw(&mut context);
-
-                renderer.flush()?;
-            }
-            // Call on_exit when loop breaks
-            let mut context = Context { canvas: renderer.canvas() };
-            scene.on_exit(&mut context);
-            renderer.flush()?; // Added: Flush after on_exit to display message
-            std::thread::sleep(Duration::from_secs(1)); // Added: Delay to see exit message
-        }
-        Commands::ListScenes(_) => {
-            println!("Listing available scenes (not yet implemented)");
-            // Placeholder for actual scene listing logic
-        }
+        Commands::Run(args) => run_scene(args),
+        Commands::ListScenes(args) => list_scenes(args),
     }
-
-    Ok(())
 }

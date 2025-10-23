@@ -1,11 +1,20 @@
 use crate::render::Cell;
 use crossterm::style::Color;
+use serde::Deserialize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum PixelMode {
     Ascii,
+    #[serde(alias = "halfblock")]
     HalfBlock,
     Braille,
+}
+
+impl Default for PixelMode {
+    fn default() -> Self {
+        PixelMode::Ascii
+    }
 }
 
 #[allow(dead_code)] // Fields will be used in future steps
@@ -72,13 +81,17 @@ impl<'a> Canvas<'a> {
 
         loop {
             self.draw_point(x0 as u16, y0 as u16);
-            if x0 == x1 && y0 == y1 { break; }
+            if x0 == x1 && y0 == y1 {
+                break;
+            }
             let e2 = 2 * err;
-            if e2 >= dy { // e_xy + e_x > 0
+            if e2 >= dy {
+                // e_xy + e_x > 0
                 err += dy;
                 x0 += sx;
             }
-            if e2 <= dx { // e_xy + e_y < 0
+            if e2 <= dx {
+                // e_xy + e_y < 0
                 err += dx;
                 y0 += sy;
             }
@@ -96,11 +109,21 @@ impl<'a> Canvas<'a> {
             // Top line
             self.draw_line(x as i32, y as i32, (x + w - 1) as i32, y as i32);
             // Bottom line
-            self.draw_line(x as i32, (y + h - 1) as i32, (x + w - 1) as i32, (y + h - 1) as i32);
+            self.draw_line(
+                x as i32,
+                (y + h - 1) as i32,
+                (x + w - 1) as i32,
+                (y + h - 1) as i32,
+            );
             // Left line
             self.draw_line(x as i32, y as i32, x as i32, (y + h - 1) as i32);
             // Right line
-            self.draw_line((x + w - 1) as i32, y as i32, (x + w - 1) as i32, (y + h - 1) as i32);
+            self.draw_line(
+                (x + w - 1) as i32,
+                y as i32,
+                (x + w - 1) as i32,
+                (y + h - 1) as i32,
+            );
         }
     }
 

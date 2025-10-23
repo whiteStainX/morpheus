@@ -1,7 +1,11 @@
-use anyhow::Result;
-use crossterm::{cursor, execute, style::{Color, Print, SetBackgroundColor, SetForegroundColor}, terminal};
-use std::io::{stdout, Write};
 use crate::draw::Canvas;
+use anyhow::Result;
+use crossterm::{
+    cursor, execute,
+    style::{Color, Print, SetBackgroundColor, SetForegroundColor},
+    terminal,
+};
+use std::io::{stdout, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -64,7 +68,12 @@ impl TerminalRenderer {
     }
 
     pub fn flush(&mut self) -> Result<()> {
-        for (i, (front_cell, back_cell)) in self.front_buffer.iter().zip(self.back_buffer.iter()).enumerate() {
+        for (i, (front_cell, back_cell)) in self
+            .front_buffer
+            .iter()
+            .zip(self.back_buffer.iter())
+            .enumerate()
+        {
             if front_cell != back_cell {
                 let x = (i % self.width as usize) as u16;
                 let y = (i / self.width as usize) as u16;

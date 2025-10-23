@@ -30,3 +30,11 @@
 *   **Drawing Primitives:** Implemented `draw_point`, `draw_line` (Bresenham's), `draw_rect` (outline/filled), `draw_circle` (outline/filled), and `set_symbol` in `Canvas`.
     *   *Note:* These drawing functions are currently basic and will need further refinement, especially when integrating advanced pixel modes.
 *   **Pixel Mode Implementation (Partial):** Defined `PixelMode` enum and integrated it into `Canvas`. ASCII mode is functional. The rendering logic for Unicode Half-Block and Braille modes is pending.
+
+## Progress Update (2025-10-21) - Scene System
+
+*   **Scene Trait:** Completed the `Scene` trait in `crates/engine/src/scene.rs` with `on_start`, `on_update`, `on_draw`, and `on_exit` methods.
+*   **Context Struct:** The `Context` struct now provides access to `Canvas`, `EngineSettings`, `InputState`, and timing information (`delta_time`, `total_time`, `frame`).
+*   **Scene Manager:** Implemented a `SceneManager` in `crates/engine/src/scene.rs` capable of adding, activating, and managing the lifecycle of multiple scenes.
+*   **Config Loading:** Implemented `load_config` function and associated `serde` structs in `crates/engine/src/config.rs` to load engine and scene definitions from a TOML file.
+*   **CLI Integration:** The `run` command in `crates/cli/src/main.rs` now uses the `SceneManager` to load and run scenes defined in the specified configuration file.
