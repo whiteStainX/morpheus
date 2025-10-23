@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::KeyCode;
 use crossterm::style::Color;
 use shape_engine_core::{
     load_config, render::TerminalRenderer, time::Clock, Context, EngineSettings, InputState, Scene,
@@ -208,6 +208,11 @@ fn run_scene(args: &RunArgs) -> Result<()> {
 
     let mut scene_manager = SceneManager::new();
     let mut input_state = InputState::new();
+    let scene_names: Vec<String> = config
+        .scenes
+        .iter()
+        .map(|scene| scene.name.clone())
+        .collect();
 
     for scene_def in &config.scenes {
         if scene_manager.has_scene(&scene_def.name) {
@@ -221,6 +226,10 @@ fn run_scene(args: &RunArgs) -> Result<()> {
     }
 
     let initial_scene = config.scenes.first().unwrap();
+    let mut active_scene_index = scene_names
+        .iter()
+        .position(|name| name == &initial_scene.name)
+        .unwrap_or(0);
     if !scene_manager.has_scene(&initial_scene.name) {
         return Err(anyhow!(
             "Scene '{}' is not registered in the engine",
@@ -241,25 +250,30 @@ fn run_scene(args: &RunArgs) -> Result<()> {
     let mut elapsed_time = 0.0f32;
     let mut frame = 0u64;
     let mut exit_requested = false;
+    let mut paused = false;
 
     while !exit_requested {
-        let dt = clock.tick();
-        elapsed_time += dt;
-        frame = frame.wrapping_add(1);
-
-        while event::poll(Duration::from_millis(0))? {
-            match event::read()? {
-                Event::Key(key_event) => match key_event.kind {
-                    KeyEventKind::Press | KeyEventKind::Repeat => {
-                        input_state.set_key_pressed(key_event.code, true);
-                        if key_event.code == KeyCode::Char('q') {
-                            exit_requested = true;
+        for key_event in input_state.poll_events()? {
+            match key_event.code {
+                KeyCode::Char(c) => match c.to_ascii_lowercase() {
+                    'q' => exit_requested = true,
+                    'p' => paused = !paused,
+                    'n' => {
+                        if !scene_names.is_empty() {
+                            active_scene_index = (active_scene_index + 1) % scene_names.len();
+                            if let Some(next_scene) = scene_names.get(active_scene_index) {
+                                if scene_manager.has_scene(next_scene) {
+                                    scene_manager.queue_transition(next_scene.clone());
+                                }
+                            }
                         }
                     }
-                    KeyEventKind::Release => {
-                        input_state.set_key_pressed(key_event.code, false);
+                    'm' => {
+                        engine_settings.mode = engine_settings.mode.next();
                     }
+                    _ => {}
                 },
+                KeyCode::Esc => exit_requested = true,
                 _ => {}
             }
         }
@@ -268,14 +282,44 @@ fn run_scene(args: &RunArgs) -> Result<()> {
             break;
         }
 
+        let raw_dt = clock.tick();
+        let delta_time = if paused { 0.0 } else { raw_dt };
+        if !paused {
+            elapsed_time += raw_dt;
+            frame = frame.wrapping_add(1);
+        }
+        let fps = if delta_time > 0.0 {
+            1.0 / delta_time
+        } else {
+            0.0
+        };
+
         renderer.clear_screen();
         {
             let mut context = Context::new(renderer.canvas(), engine_settings.clone());
             context.set_input(Some(&input_state));
-            context.set_timing(dt, elapsed_time, frame);
+            context.set_timing(delta_time, elapsed_time, frame);
             context.canvas.current_pixel_mode = engine_settings.mode;
             scene_manager.update(&mut context)?;
             scene_manager.draw(&mut context);
+        }
+        {
+            let mut overlay = renderer.overlay_canvas();
+            overlay.set_foreground_color(Color::Yellow);
+            let scene_label = scene_manager.current_scene().unwrap_or("<none>");
+            let pause_suffix = if paused { " [Paused]" } else { "" };
+            overlay.draw_text(0, 0, &format!("Scene: {}{}", scene_label, pause_suffix));
+
+            overlay.set_foreground_color(Color::White);
+            overlay.draw_text(
+                0,
+                1,
+                &format!(
+                    "Mode: {:?} | FPS: {:>5.1} | Frame: {}",
+                    engine_settings.mode, fps, frame
+                ),
+            );
+            overlay.draw_text(0, 2, "[Q] Quit  [P] Pause  [N] Next Scene  [M] Toggle Mode");
         }
         renderer.flush()?;
     }

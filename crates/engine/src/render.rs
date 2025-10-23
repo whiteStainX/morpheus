@@ -30,6 +30,7 @@ pub struct TerminalRenderer {
     height: u16,
     front_buffer: Vec<Cell>,
     back_buffer: Vec<Cell>,
+    overlay_buffer: Vec<Cell>,
     stdout: std::io::Stdout,
 }
 
@@ -41,6 +42,7 @@ impl TerminalRenderer {
             height,
             front_buffer: vec![Cell::default(); size],
             back_buffer: vec![Cell::default(); size],
+            overlay_buffer: vec![Cell::default(); size],
             stdout: stdout(),
         })
     }
@@ -61,10 +63,21 @@ impl TerminalRenderer {
         for cell in self.back_buffer.iter_mut() {
             *cell = Cell::default();
         }
+        self.clear_overlay();
     }
 
     pub fn canvas(&mut self) -> Canvas<'_> {
         Canvas::new(self.width, self.height, &mut self.back_buffer)
+    }
+
+    pub fn overlay_canvas(&mut self) -> Canvas<'_> {
+        Canvas::new(self.width, self.height, &mut self.overlay_buffer)
+    }
+
+    pub fn clear_overlay(&mut self) {
+        for cell in self.overlay_buffer.iter_mut() {
+            *cell = Cell::default();
+        }
     }
 
     pub fn flush(&mut self) -> Result<()> {
@@ -86,8 +99,28 @@ impl TerminalRenderer {
                 )?;
             }
         }
-        self.stdout.flush()?;
         self.front_buffer.copy_from_slice(&self.back_buffer);
+
+        for (i, overlay_cell) in self.overlay_buffer.iter().enumerate() {
+            if overlay_cell.symbol != ' '
+                || overlay_cell.fg != Color::Reset
+                || overlay_cell.bg != Color::Reset
+            {
+                let x = (i % self.width as usize) as u16;
+                let y = (i / self.width as usize) as u16;
+                execute!(
+                    self.stdout,
+                    cursor::MoveTo(x, y),
+                    SetForegroundColor(overlay_cell.fg),
+                    SetBackgroundColor(overlay_cell.bg),
+                    Print(overlay_cell.symbol)
+                )?;
+                self.front_buffer[i] = *overlay_cell;
+            }
+        }
+
+        self.stdout.flush()?;
+        self.clear_overlay();
         Ok(())
     }
 }
