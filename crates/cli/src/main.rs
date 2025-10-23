@@ -42,7 +42,6 @@ struct ListScenesArgs {
 }
 
 struct MyTestScene {
-    config_path: String,
     frame_count: u64,
     dt: f32,
     x_pos: f32,
@@ -50,26 +49,29 @@ struct MyTestScene {
     x_dir: f32,
     y_dir: f32,
     time_elapsed: f32,
+    player_x: f32,
+    player_y: f32,
 }
 
 impl MyTestScene {
-    fn new(config_path: impl Into<String>) -> Self {
+    fn new() -> Self {
         Self {
-            config_path: config_path.into(),
             frame_count: 0,
             dt: 0.0,
-            x_pos: 0.0,
-            y_pos: 0.0,
+            x_pos: 10.0,
+            y_pos: 10.0,
             x_dir: 1.0,
             y_dir: 1.0,
             time_elapsed: 0.0,
+            player_x: 5.0,
+            player_y: 5.0,
         }
     }
 }
 
 impl Scene for MyTestScene {
-    fn on_start(&mut self, ctx: &mut Context<'_>) {
-        ctx.canvas.draw_text(0, 5, "MyTestScene started!");
+    fn on_start(&mut self, _ctx: &mut Context<'_>) {
+        // You can keep start-up logic here if needed.
     }
 
     fn on_update(&mut self, ctx: &mut Context<'_>) {
@@ -77,57 +79,50 @@ impl Scene for MyTestScene {
         self.dt = ctx.delta_time;
         self.time_elapsed = ctx.total_time;
 
-        self.x_pos += self.x_dir * 10.0 * ctx.delta_time; // Move 10 units per second
-        self.y_pos += self.y_dir * 5.0 * ctx.delta_time; // Move 5 units per second
-
+        // Automated movement
+        self.x_pos += self.x_dir * 10.0 * ctx.delta_time;
+        self.y_pos += self.y_dir * 5.0 * ctx.delta_time;
         if self.x_pos >= (ctx.canvas.width - 1) as f32 || self.x_pos < 0.0 {
             self.x_dir *= -1.0;
         }
         if self.y_pos >= (ctx.canvas.height - 1) as f32 || self.y_pos < 0.0 {
             self.y_dir *= -1.0;
         }
+
+        // Player-controlled movement
+        if let Some(input) = ctx.input() {
+            let speed = 20.0;
+            if input.is_key_pressed(KeyCode::Up) {
+                self.player_y -= speed * ctx.delta_time;
+            }
+            if input.is_key_pressed(KeyCode::Down) {
+                self.player_y += speed * ctx.delta_time;
+            }
+            if input.is_key_pressed(KeyCode::Left) {
+                self.player_x -= speed * ctx.delta_time;
+            }
+            if input.is_key_pressed(KeyCode::Right) {
+                self.player_x += speed * ctx.delta_time;
+            }
+        }
     }
 
     fn on_draw(&mut self, ctx: &mut Context<'_>) {
-        ctx.canvas
-            .draw_text(0, 0, &format!("Active config: {}", self.config_path));
-        ctx.canvas.draw_text(
-            0,
-            1,
-            &format!(
-                "Engine: {}x{} @ {} FPS",
-                ctx.engine.width, ctx.engine.height, ctx.engine.framerate
-            ),
-        );
+        // The overlay now handles debug text, so we just draw scene elements here.
 
-        let fps = if self.dt > 0.0 { 1.0 / self.dt } else { 0.0 };
-        ctx.canvas
-            .draw_text(0, 2, &format!("Pixel Mode: {:?}", ctx.engine.mode));
-        ctx.canvas.draw_text(
-            0,
-            3,
-            &format!(
-                "Frame: {}, Time: {:.2}s",
-                self.frame_count, self.time_elapsed
-            ),
-        );
-        ctx.canvas.draw_text(
-            0,
-            4,
-            &format!("Delta Time: {:.4}s, FPS: {:.1}", self.dt, fps),
-        );
-
+        // Draw automated moving character
         ctx.canvas.set_foreground_color(Color::Red);
         ctx.canvas.set_symbol('@');
-        ctx.canvas
-            .draw_text(self.x_pos as u16, self.y_pos as u16, "@");
+        ctx.canvas.draw_point(self.x_pos as u16, self.y_pos as u16);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        ctx.canvas.set_background_color(Color::Blue);
-        ctx.canvas
-            .draw_text(0, 7, "This text has a blue background!");
-        ctx.canvas.set_background_color(Color::Reset);
+        // Draw player-controlled rectangle
+        ctx.canvas.set_foreground_color(Color::Blue);
+        ctx.canvas.set_symbol('■');
+        ctx.canvas.draw_rect(self.player_x as u16, self.player_y as u16, 2, 1, true);
+        ctx.canvas.set_foreground_color(Color::Reset);
 
+        // Draw some other static and animated primitives from before
         ctx.canvas.set_foreground_color(Color::Green);
         ctx.canvas.set_symbol('#');
         ctx.canvas.draw_rect(50, 5, 10, 5, false);
@@ -155,20 +150,6 @@ impl Scene for MyTestScene {
             .draw_circle(circle_x, circle_y, circle_radius, false);
         ctx.canvas.set_foreground_color(Color::Reset);
 
-        let filled_circle_radius = (3.0 * (self.time_elapsed.cos() + 1.0) + 1.0) as i32;
-        let filled_circle_x =
-            (ctx.canvas.width / 4) as i32 + (5.0 * (self.time_elapsed * 0.7).sin()) as i32;
-        let filled_circle_y =
-            (ctx.canvas.height / 4) as i32 + (3.0 * (self.time_elapsed * 0.9).cos()) as i32;
-
-        ctx.canvas.set_foreground_color(Color::White);
-        ctx.canvas.set_background_color(Color::DarkGrey);
-        ctx.canvas.set_symbol('O');
-        ctx.canvas
-            .draw_circle(filled_circle_x, filled_circle_y, filled_circle_radius, true);
-        ctx.canvas.set_foreground_color(Color::Reset);
-        ctx.canvas.set_background_color(Color::Reset);
-
         ctx.canvas.set_symbol(' ');
     }
 
@@ -180,11 +161,8 @@ impl Scene for MyTestScene {
     }
 }
 
-fn instantiate_scene(name: &str, config_path: &str) -> Option<Box<dyn Scene>> {
-    match name {
-        "waves" | "demo" | "test" => Some(Box::new(MyTestScene::new(config_path.to_string()))),
-        _ => None,
-    }
+fn instantiate_scene(_name: &str, _config_path: &str) -> Option<Box<dyn Scene>> {
+    Some(Box::new(MyTestScene::new()))
 }
 
 fn run_scene(args: &RunArgs) -> Result<()> {
