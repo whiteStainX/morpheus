@@ -1,7 +1,9 @@
 use crate::draw::Canvas;
 use anyhow::Result;
 use crossterm::{
-    cursor, execute,
+    cursor,
+    event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
+    execute,
     style::{Color, Print, SetBackgroundColor, SetForegroundColor},
     terminal,
 };
@@ -32,6 +34,7 @@ pub struct TerminalRenderer {
     back_buffer: Vec<Cell>,
     overlay_buffer: Vec<Cell>,
     stdout: std::io::Stdout,
+    keyboard_enhancement_enabled: bool,
 }
 
 impl TerminalRenderer {
@@ -44,16 +47,29 @@ impl TerminalRenderer {
             back_buffer: vec![Cell::default(); size],
             overlay_buffer: vec![Cell::default(); size],
             stdout: stdout(),
+            keyboard_enhancement_enabled: false,
         })
     }
 
     pub fn init(&mut self) -> Result<()> {
         terminal::enable_raw_mode()?;
         execute!(self.stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
+
+        if matches!(terminal::supports_keyboard_enhancement(), Ok(true)) {
+            execute!(
+                self.stdout,
+                PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::REPORT_EVENT_TYPES)
+            )?;
+            self.keyboard_enhancement_enabled = true;
+        }
         Ok(())
     }
 
     pub fn shutdown(&mut self) -> Result<()> {
+        if self.keyboard_enhancement_enabled {
+            execute!(self.stdout, PopKeyboardEnhancementFlags)?;
+            self.keyboard_enhancement_enabled = false;
+        }
         execute!(self.stdout, terminal::LeaveAlternateScreen, cursor::Show)?;
         terminal::disable_raw_mode()?;
         Ok(())

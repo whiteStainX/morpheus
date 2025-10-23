@@ -119,7 +119,8 @@ impl Scene for MyTestScene {
         // Draw player-controlled rectangle
         ctx.canvas.set_foreground_color(Color::Blue);
         ctx.canvas.set_symbol('■');
-        ctx.canvas.draw_rect(self.player_x as u16, self.player_y as u16, 2, 1, true);
+        ctx.canvas
+            .draw_rect(self.player_x as u16, self.player_y as u16, 2, 1, true);
         ctx.canvas.set_foreground_color(Color::Reset);
 
         // Draw some other static and animated primitives from before
